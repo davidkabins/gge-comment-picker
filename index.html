@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Comment Picker</title>
+<style>
+  :root {
+    --blue: #003366;
+    --blue-soft: #e8eef5;
+    --green: #99cc00;
+    --text: #1d1d1f;
+    --grey: #5a5a5a;
+    --line: #d9dee5;
+    --bg: #f6f7f9;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 16px;
+  }
+  header { text-align: center; max-width: 720px; }
+  .course { color: var(--blue); font-weight: 700; font-size: 15px; letter-spacing: .02em; }
+  h1 { margin: 8px 0 6px; font-size: clamp(28px, 5vw, 42px); color: var(--blue); }
+  .sub { color: var(--grey); font-size: 17px; margin: 0; }
+  ol {
+    list-style: none;
+    padding: 0;
+    margin: 36px 0 32px;
+    width: 100%;
+    max-width: 560px;
+    display: grid;
+    gap: 12px;
+  }
+  li {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 18px;
+    min-height: 68px;
+    transition: border-color .3s, box-shadow .3s;
+  }
+  .rank {
+    flex: none;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--blue-soft);
+    color: var(--blue);
+    font-weight: 700;
+    display: grid; place-items: center;
+    font-size: 17px;
+  }
+  .name { font-size: 24px; font-weight: 600; color: #b5bcc6; }
+  li.spinning .name { color: var(--grey); filter: blur(.4px); }
+  li.done { border-color: var(--blue); box-shadow: 0 4px 16px rgba(0,51,102,.12); }
+  li.done .rank { background: var(--blue); color: #fff; }
+  li.done .name { color: var(--text); animation: pop .45s ease-out; }
+  @keyframes pop {
+    0% { transform: scale(.85); opacity: .4; }
+    60% { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  button {
+    font: inherit;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--blue);
+    border: none;
+    border-radius: 999px;
+    padding: 16px 56px;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,51,102,.25);
+    transition: transform .15s, opacity .2s;
+  }
+  button:hover { transform: translateY(-1px); }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: .5; cursor: default; transform: none; }
+  footer { margin-top: 28px; color: var(--grey); font-size: 14px; text-align: center; }
+  @media (prefers-reduced-motion: reduce) {
+    li.done .name { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="course">Governing the Global Economy · FU Berlin</div>
+    <h1>Questions &amp; comments</h1>
+    <p class="sub">Five students, picked at random, for this week's podcast feedback</p>
+  </header>
+
+  <ol id="slots"></ol>
+
+  <button id="start">Start</button>
+  <footer id="count"></footer>
+
+<script>
+  // First name and last initial only. Full names are not published.
+  const STUDENTS = [
+    "Farjana A.", "Leonard B.", "Madeleine C.", "Methma D.", "Gianluca D.",
+    "Gaia D.", "Zara F.", "Kim G.", "Alexander H.", "Mia H.",
+    "Yoonseo H.", "Louis I.", "Nour J.", "Erikas K.", "Yuliia K.",
+    "Maja L.", "Sean L.", "Elisabeth M.", "Valentina M.", "Junhyeok M.",
+    "Gabrielle O.", "Tami O.", "Seohyun P.", "Felipe P.", "Musabbir R.",
+    "Carmen S.", "Sofia S.", "Paul S.", "Lance S.", "Sarah S.",
+    "Philippa W.", "Sofya Y.", "Rongmei Z."
+  ];
+  const PICKS = 5;
+  const ORDINALS = ["1", "2", "3", "4", "5"];
+
+  const slotsEl = document.getElementById("slots");
+  const button = document.getElementById("start");
+  document.getElementById("count").textContent = STUDENTS.length + " students in the list";
+
+  const slots = ORDINALS.map((n) => {
+    const li = document.createElement("li");
+    li.innerHTML = '<span class="rank">' + n + '</span><span class="name">?</span>';
+    slotsEl.appendChild(li);
+    return li;
+  });
+
+  function randInt(max) {
+    const a = new Uint32Array(1);
+    crypto.getRandomValues(a);
+    return a[0] % max;
+  }
+
+  function pickFive() {
+    const pool = STUDENTS.slice();
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = randInt(i + 1);
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, PICKS);
+  }
+
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  button.addEventListener("click", () => {
+    button.disabled = true;
+    const winners = pickFive();
+    const tick = reduced ? 400 : 70;
+    const firstStop = reduced ? 300 : 1200;
+    const gap = reduced ? 250 : 700;
+
+    slots.forEach((li) => {
+      li.classList.remove("done");
+      li.classList.add("spinning");
+    });
+
+    const timer = setInterval(() => {
+      slots.forEach((li) => {
+        if (li.classList.contains("spinning")) {
+          li.querySelector(".name").textContent = STUDENTS[randInt(STUDENTS.length)];
+        }
+      });
+    }, tick);
+
+    winners.forEach((name, i) => {
+      setTimeout(() => {
+        const li = slots[i];
+        li.classList.remove("spinning");
+        li.querySelector(".name").textContent = name;
+        li.classList.add("done");
+        if (i === PICKS - 1) {
+          clearInterval(timer);
+          button.textContent = "Pick again";
+          button.disabled = false;
+        }
+      }, firstStop + i * gap);
+    });
+  });
+</script>
+</body>
+</html>
